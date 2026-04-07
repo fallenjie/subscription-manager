@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订阅管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #1a1a2e;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .card-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .card-value span {
+            font-size: 16px;
+            color: #999;
+        }
+        .chart-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1a1a2e;
+        }
+        #trendChart {
+            width: 100%;
+            height: 300px;
+        }
+        .subscription-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #4338ca;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            color: #666;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        td {
+            font-size: 14px;
+        }
+        .platform-name {
+            font-weight: 500;
+        }
+        .cycle-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .cycle-monthly {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .cycle-yearly {
+            background: #fef3c7;
+            color: #b45309;
+        }
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+        .action-btns button {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #666;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .monthly-avg {
+            color: #4f46e5;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📺 订阅管理</h1>
+        
+        <div class="summary-cards">
+            <div class="card">
+                <div class="card-label">每月平均花费</div>
+                <div class="card-value" id="totalMonthly">¥0 <span>/月</span></div>
+            </div>
+            <div class="card">
+                <div class="card-label">订阅数量</div>
+                <div class="card-value" id="totalCount">0 <span>个</span></div>
+            </div>
+            <div class="card">
+                <div class="card-label">年付订阅</div>
+                <div class="card-value" id="yearlyCount">0 <span>个</span></div>
+            </div>
+            <div class="card">
+                <div class="card-label">月付订阅</div>
+                <div class="card-value" id="monthlyCount">0 <span>个</span></div>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <div class="chart-title">📈 最近12个月花费趋势</div>
+            <div id="trendChart"></div>
+        </div>
+
+        <div class="subscription-section">
+            <div class="section-header">
+                <div class="section-title">订阅列表</div>
+                <button class="btn btn-primary" onclick="openModal()">+ 添加订阅</button>
+            </div>
+            <div id="subscriptionList">
+                <div class="empty-state">暂无订阅，点击上方按钮添加</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">添加订阅</div>
+            <form id="subscriptionForm">
+                <input type="hidden" id="editIndex" value="-1">
+                <div class="form-group">
+                    <label>平台名称</label>
+                    <input type="text" id="platform" placeholder="如：奈飞、腾讯视频" required>
+                </div>
+                <div class="form-group">
+                    <label>订阅周期</label>
+                    <select id="cycle" required>
+                        <option value="monthly">月付</option>
+                        <option value="yearly">年付</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>订阅价格（元）</label>
+                    <input type="number" id="price" placeholder="如：68" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>订阅日期</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label>备注（可选）</label>
+                    <input type="text" id="remark" placeholder="如：高清会员">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'subscription_manager_data';
+        
+        // 默认订阅数据
+        const defaultSubscriptions = [
+            { platform: '奈飞（Netflix）', cycle: 'monthly', price: 68, startDate: '2025-01-15', remark: '标准会员' },
+            { platform: '腾讯视频', cycle: 'yearly', price: 198, startDate: '2025-03-01', remark: '年费VIP' },
+            { platform: '腾讯音乐', cycle: 'monthly', price: 15, startDate: '2025-06-01', remark: '绿钻豪华版' },
+            { platform: '网易云音乐', cycle: 'yearly', price: 128, startDate: '2025-02-01', remark: '黑胶VIP' },
+            { platform: '88vip', cycle: 'yearly', price: 88, startDate: '2025-08-01', remark: '淘气值1000+' }
+        ];
+
+        let subscriptions = [];
+        let chart = null;
+
+        // 加载数据
+        function loadData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                subscriptions = JSON.parse(stored);
+            } else {
+                subscriptions = [...defaultSubscriptions];
+                saveData();
+            }
+        }
+
+        // 保存数据
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(subscriptions));
+        }
+
+        // 计算月均成本
+        function getMonthlyCost(item) {
+            if (item.cycle === 'yearly') {
+                return item.price / 12;
+            }
+            return item.price;
+        }
+
+        // 更新统计卡片
+        function updateSummary() {
+            const totalMonthly = subscriptions.reduce((sum, item) => sum + getMonthlyCost(item), 0);
+            const yearlyCount = subscriptions.filter(item => item.cycle === 'yearly').length;
+            const monthlyCount = subscriptions.filter(item => item.cycle === 'monthly').length;
+
+            document.getElementById('totalMonthly').innerHTML = `¥${totalMonthly.toFixed(2)} <span>/月</span>`;
+            document.getElementById('totalCount').textContent = subscriptions.length;
+            document.getElementById('yearlyCount').textContent = yearlyCount;
+            document.getElementById('monthlyCount').textContent = monthlyCount;
+        }
+
+        // 渲染订阅列表
+        function renderList() {
+            const container = document.getElementById('subscriptionList');
+            
+            if (subscriptions.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无订阅，点击上方按钮添加</div>';
+                return;
+            }
+
+            const tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>平台</th>
+                            <th>周期</th>
+                            <th>价格</th>
+                            <th>月均</th>
+                            <th>订阅日期</th>
+                            <th>备注</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${subscriptions.map((item, index) => `
+                            <tr>
+                                <td class="platform-name">${item.platform}</td>
+                                <td>
+                                    <span class="cycle-badge ${item.cycle === 'monthly' ? 'cycle-monthly' : 'cycle-yearly'}">
+                                        ${item.cycle === 'monthly' ? '月付' : '年付'}
+                                    </span>
+                                </td>
+                                <td>¥${item.price}</td>
+                                <td class="monthly-avg">¥${getMonthlyCost(item).toFixed(2)}</td>
+                                <td>${item.startDate}</td>
+                                <td>${item.remark || '-'}</td>
+                                <td class="action-btns">
+                                    <button class="btn btn-secondary" onclick="editSubscription(${index})">编辑</button>
+                                    <button class="btn btn-danger" onclick="deleteSubscription(${index})">删除</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = tableHTML;
+        }
+
+        // 生成最近12个月标签
+        function getLast12Months() {
+            const months = [];
+            const now = new Date();
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+            }
+            return months;
+        }
+
+        // 计算每月花费
+        function calculateMonthlyTrend() {
+            const months = getLast12Months();
+            const monthlyData = new Array(12).fill(0);
+
+            subscriptions.forEach(sub => {
+                const startDate = new Date(sub.startDate);
+                const now = new Date();
+                
+                months.forEach((month, index) => {
+                    const [year, monthNum] = month.split('-').map(Number);
+                    const monthStart = new Date(year, monthNum - 1, 1);
+                    const monthEnd = new Date(year, monthNum, 0);
+                    
+                    // 检查订阅是否在当月生效
+                    if (startDate <= monthEnd) {
+                        monthlyData[index] += getMonthlyCost(sub);
+                    }
+                });
+            });
+
+            return { months, monthlyData };
+        }
+
+        // 更新趋势图
+        function updateChart() {
+            const chartDom = document.getElementById('trendChart');
+            
+            if (!chart) {
+                chart = echarts.init(chartDom);
+            }
+
+            const { months, monthlyData } = calculateMonthlyTrend();
+            const monthLabels = months.map(m => {
+                const [year, month] = m.split('-');
+                return `${month}月`;
+            });
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: '{b}<br/>¥{c}'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: monthLabels
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '花费（元）',
+                    axisLabel: {
+                        formatter: '¥{value}'
+                    }
+                },
+                series: [
+                    {
+                        name: '月均花费',
+                        type: 'line',
+                        smooth: true,
+                        data: monthlyData.map(v => v.toFixed(2)),
+                        areaStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0, y: 0, x2: 0, y2: 1,
+                                colorStops: [
+                                    { offset: 0, color: 'rgba(79, 70, 229, 0.3)' },
+                                    { offset: 1, color: 'rgba(79, 70, 229, 0.05)' }
+                                ]
+                            }
+                        },
+                        lineStyle: {
+                            color: '#4f46e5',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#4f46e5'
+                        }
+                    }
+                ]
+            };
+
+            chart.setOption(option);
+        }
+
+        // 打开弹窗
+        function openModal(index = -1) {
+            const modal = document.getElementById('modal');
+            const form = document.getElementById('subscriptionForm');
+            const title = document.getElementById('modalTitle');
+            
+            form.reset();
+            document.getElementById('editIndex').value = -1;
+            
+            if (index >= 0) {
+                const item = subscriptions[index];
+                title.textContent = '编辑订阅';
+                document.getElementById('editIndex').value = index;
+                document.getElementById('platform').value = item.platform;
+                document.getElementById('cycle').value = item.cycle;
+                document.getElementById('price').value = item.price;
+                document.getElementById('startDate').value = item.startDate;
+                document.getElementById('remark').value = item.remark || '';
+            } else {
+                title.textContent = '添加订阅';
+                document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+            }
+            
+            modal.classList.add('active');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // 编辑订阅
+        function editSubscription(index) {
+            openModal(index);
+        }
+
+        // 删除订阅
+        function deleteSubscription(index) {
+            if (confirm('确定要删除这个订阅吗？')) {
+                subscriptions.splice(index, 1);
+                saveData();
+                updateAll();
+            }
+        }
+
+        // 表单提交
+        document.getElementById('subscriptionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const editIndex = parseInt(document.getElementById('editIndex').value);
+            const data = {
+                platform: document.getElementById('platform').value.trim(),
+                cycle: document.getElementById('cycle').value,
+                price: parseFloat(document.getElementById('price').value),
+                startDate: document.getElementById('startDate').value,
+                remark: document.getElementById('remark').value.trim()
+            };
+
+            if (editIndex >= 0) {
+                subscriptions[editIndex] = data;
+            } else {
+                subscriptions.push(data);
+            }
+
+            saveData();
+            closeModal();
+            updateAll();
+        });
+
+        // 更新所有视图
+        function updateAll() {
+            updateSummary();
+            renderList();
+            updateChart();
+        }
+
+        // 窗口调整时重绘图表
+        window.addEventListener('resize', function() {
+            if (chart) {
+                chart.resize();
+            }
+        });
+
+        // 初始化
+        loadData();
+        updateAll();
+    </script>
+</body>
+</html>
