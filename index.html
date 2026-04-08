@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>省钱包 - 订阅管理</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0f1117;
+--bg2:#161b27;
+--bg3:#1e2433;
+--card:#232a3b;
+--card2:#2a3347;
+--text:#e8eaed;
+--text2:#9ca3af;
+--text3:#6b7280;
+--accent:#10d9a8;
+--accent2:#0fc7a0;
+--accent-glow:rgba(16,217,168,0.15);
+--danger:#f87171;
+--danger-bg:rgba(248,113,113,0.1);
+--warning:#fbbf24;
+--warning-bg:rgba(251,191,36,0.1);
+--purple:#a78bfa;
+--radius:16px;
+--radius-sm:10px;
+}
+html,body{height:100%}
+body{
+font-family:'DM Sans',sans-serif;
+background:var(--bg);
+color:var(--text);
+overflow:hidden;
+}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif}
+
+/* APP SHELL */
+.app{
+display:flex;
+flex-direction:column;
+height:100vh;
+max-width:500px;
+margin:0 auto;
+position:relative;
+}
+
+/* TOP BAR */
+.topbar{
+padding:16px 20px 12px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+background:linear-gradient(180deg,var(--bg) 0%,transparent 100%);
+position:relative;
+z-index:10;
+}
+.topbar h1{
+font-size:22px;
+font-weight:700;
+background:linear-gradient(135deg,#fff 0%,var(--accent) 100%);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+background-clip:text;
+}
+.topbar-date{
+font-size:12px;
+color:var(--text3);
+margin-top:2px;
+}
+
+/* PAGE CONTAINER */
+.page-container{
+flex:1;
+overflow-y:auto;
+overflow-x:hidden;
+padding:0 16px 100px;
+scroll-behavior:smooth;
+-webkit-overflow-scrolling:touch;
+}
+.page-container::-webkit-scrollbar{width:0}
+
+/* TABS */
+.page{
+display:none;
+animation:fadeUp 0.3s ease;
+}
+.page.active{display:block}
+@keyframes fadeUp{
+from{opacity:0;transform:translateY(12px)}
+to{opacity:1;transform:translateY(0)}
+}
+
+/* BOTTOM NAV */
+.bottom-nav{
+position:fixed;
+bottom:0;
+left:50%;
+transform:translateX(-50%);
+width:100%;
+max-width:500px;
+background:rgba(15,17,23,0.92);
+backdrop-filter:blur(20px);
+border-top:1px solid rgba(255,255,255,0.06);
+padding:8px 12px;
+padding-bottom:max(8px,env(safe-area-inset-bottom));
+z-index:100;
+display:flex;
+justify-content:space-around;
+}
+.nav-item{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:4px;
+padding:8px 16px;
+border-radius:12px;
+cursor:pointer;
+transition:all 0.2s;
+color:var(--text3);
+flex:1;
+}
+.nav-item.active{color:var(--accent)}
+.nav-item svg{width:22px;height:22px}
+.nav-item span{font-size:10px;font-weight:500}
+.nav-item.active svg{filter:drop-shadow(0 0 8px var(--accent))}
+
+/* CARDS */
+.card{
+background:var(--card);
+border-radius:var(--radius);
+padding:18px;
+margin-bottom:14px;
+border:1px solid rgba(255,255,255,0.04);
+transition:border-color 0.2s;
+}
+.card-title{
+font-size:12px;
+font-weight:600;
+color:var(--text2);
+text-transform:uppercase;
+letter-spacing:0.5px;
+margin-bottom:14px;
+display:flex;
+align-items:center;
+gap:6px;
+}
+
+/* STAT CARDS */
+.stat-row{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px;
+margin-bottom:14px;
+}
+.stat-card{
+background:var(--card);
+border-radius:var(--radius);
+padding:18px;
+border:1px solid rgba(255,255,255,0.04);
+}
+.stat-label{
+font-size:11px;
+color:var(--text3);
+text-transform:uppercase;
+letter-spacing:0.5px;
+margin-bottom:8px;
+}
+.stat-value{
+font-family:'Space Grotesk',sans-serif;
+font-size:26px;
+font-weight:700;
+color:var(--text);
+}
+.stat-change{
+font-size:12px;
+margin-top:6px;
+display:flex;
+align-items:center;
+gap:4px;
+}
+.stat-change.up{color:var(--accent)}
+.stat-change.down{color:var(--danger)}
+
+/* CHART CONTAINERS */
+.chart-container{
+background:var(--card);
+border-radius:var(--radius);
+padding:18px;
+margin-bottom:14px;
+border:1px solid rgba(255,255,255,0.04);
+}
+.chart-title{
+font-size:12px;
+font-weight:600;
+color:var(--text2);
+text-transform:uppercase;
+letter-spacing:0.5px;
+margin-bottom:14px;
+}
+#pieChart,#lineChart{width:100%;height:200px}
+
+/* EXPIRY LIST */
+.expiry-list{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+.expiry-item{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 14px;
+background:var(--bg3);
+border-radius:12px;
+transition:all 0.2s;
+cursor:pointer;
+}
+.expiry-item:hover{background:var(--card2)}
+.expiry-item.urgent{
+background:var(--danger-bg);
+border:1px solid rgba(248,113,113,0.2);
+}
+.expiry-icon{
+width:38px;
+height:38px;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:18px;
+flex-shrink:0;
+}
+.expiry-info{flex:1;min-width:0}
+.expiry-name{
+font-size:14px;
+font-weight:600;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+.expiry-meta{
+font-size:11px;
+color:var(--text3);
+margin-top:2px;
+}
+.expiry-days{
+font-size:13px;
+font-weight:600;
+padding:4px 10px;
+border-radius:8px;
+background:rgba(255,255,255,0.06);
+flex-shrink:0;
+}
+.expiry-item.urgent .expiry-days{
+background:rgba(248,113,113,0.2);
+color:var(--danger);
+}
+
+/* FILTER BAR */
+.filter-bar{
+display:flex;
+gap:8px;
+overflow-x:auto;
+padding:2px 0 14px;
+scrollbar-width:none;
+}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-chip{
+padding:7px 14px;
+border-radius:20px;
+font-size:12px;
+font-weight:500;
+white-space:nowrap;
+cursor:pointer;
+transition:all 0.2s;
+background:var(--bg3);
+color:var(--text2);
+border:1px solid transparent;
+flex-shrink:0;
+}
+.filter-chip.active{
+background:var(--accent);
+color:#0a0a0f;
+font-weight:600;
+}
+.filter-chip:hover:not(.active){border-color:var(--accent)}
+
+/* TABLE */
+.sub-table{
+width:100%;
+border-collapse:collapse;
+}
+.sub-table th{
+text-align:left;
+font-size:10px;
+font-weight:600;
+color:var(--text3);
+text-transform:uppercase;
+letter-spacing:0.5px;
+padding:8px 10px;
+border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.sub-table td{
+padding:14px 10px;
+font-size:13px;
+border-bottom:1px solid rgba(255,255,255,0.03);
+vertical-align:middle;
+}
+.sub-table tr:last-child td{border-bottom:none}
+.sub-table .sub-name{
+font-weight:600;
+font-size:14px;
+}
+.sub-table .sub-cat{
+display:inline-flex;
+align-items:center;
+gap:5px;
+padding:3px 9px;
+border-radius:6px;
+font-size:11px;
+background:var(--bg3);
+}
+.sub-table .sub-days{
+font-size:12px;
+padding:3px 8px;
+border-radius:6px;
+}
+.sub-table .status-active{
+background:rgba(16,217,168,0.1);
+color:var(--accent);
+}
+.sub-table .status-paused{
+background:rgba(251,191,36,0.1);
+color:var(--warning);
+}
+.sub-table .sub-actions{
+display:flex;
+gap:4px;
+}
+.action-btn{
+width:30px;
+height:30px;
+border-radius:8px;
+border:none;
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+transition:all 0.15s;
+background:transparent;
+color:var(--text3);
+}
+.action-btn:hover{background:var(--bg3);color:var(--text)}
+.action-btn.danger:hover{background:var(--danger-bg);color:var(--danger)}
+.action-btn svg{width:15px;height:15px}
+
+/* FAB */
+.fab{
+position:fixed;
+bottom:90px;
+right:20px;
+width:52px;
+height:52px;
+border-radius:16px;
+background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+border:none;
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+box-shadow:0 8px 24px rgba(16,217,168,0.3);
+transition:all 0.2s;
+z-index:50;
+}
+.fab:hover{transform:scale(1.08);box-shadow:0 12px 32px rgba(16,217,168,0.4)}
+.fab svg{width:24px;height:24px;color:#0a0a0f}
+
+/* MODAL */
+.modal-overlay{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0.7);
+backdrop-filter:blur(8px);
+z-index:200;
+display:none;
+align-items:flex-end;
+justify-content:center;
+animation:fadeIn 0.2s;
+}
+.modal-overlay.active{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+background:var(--bg2);
+border-radius:24px 24px 0 0;
+width:100%;
+max-width:500px;
+max-height:92vh;
+overflow-y:auto;
+padding:24px 20px;
+padding-bottom:max(24px,env(safe-area-inset-bottom));
+animation:slideUp 0.3s cubic-bezier(0.32,0.72,0,1);
+}
+@keyframes slideUp{
+from{transform:translateY(100%)}
+to{transform:translateY(0)}
+}
+.modal-header{
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:24px;
+}
+.modal-title{
+font-family:'Space Grotesk',sans-serif;
+font-size:20px;
+font-weight:700;
+}
+.modal-close{
+width:36px;
+height:36px;
+border-radius:10px;
+border:none;
+background:var(--bg3);
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+color:var(--text2);
+transition:all 0.15s;
+}
+.modal-close:hover{background:var(--card2);color:var(--text)}
+.modal-close svg{width:18px;height:18px}
+
+/* FORM */
+.form-group{
+margin-bottom:18px;
+}
+.form-label{
+display:block;
+font-size:12px;
+font-weight:600;
+color:var(--text2);
+margin-bottom:8px;
+}
+.form-label span{color:var(--danger)}
+.form-input,.form-select{
+width:100%;
+padding:12px 14px;
+border-radius:12px;
+border:1px solid rgba(255,255,255,0.08);
+background:var(--bg3);
+color:var(--text);
+font-family:'DM Sans',sans-serif;
+font-size:14px;
+transition:all 0.2s;
+outline:none;
+}
+.form-input:focus,.form-select:focus{
+border-color:var(--accent);
+box-shadow:0 0 0 3px var(--accent-glow);
+}
+.form-select{
+cursor:pointer;
+appearance:none;
+background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+background-repeat:no-repeat;
+background-position:right 12px center;
+padding-right:36px;
+}
+.form-row{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px;
+}
+.form-hint{
+font-size:11px;
+color:var(--text3);
+margin-top:6px;
+}
+.btn{
+padding:14px 24px;
+border-radius:12px;
+border:none;
+font-family:'DM Sans',sans-serif;
+font-size:14px;
+font-weight:600;
+cursor:pointer;
+transition:all 0.2s;
+width:100%;
+}
+.btn-primary{
+background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+color:#0a0a0f;
+}
+.btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-secondary{
+background:var(--bg3);
+color:var(--text);
+border:1px solid rgba(255,255,255,0.08);
+}
+.btn-danger{
+background:var(--danger-bg);
+color:var(--danger);
+border:1px solid rgba(248,113,113,0.2);
+}
+
+/* CATEGORY GRID */
+.cat-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px;
+}
+.cat-card{
+background:var(--bg3);
+border-radius:14px;
+padding:16px;
+display:flex;
+flex-direction:column;
+gap:8px;
+transition:all 0.2s;
+cursor:pointer;
+border:1px solid transparent;
+}
+.cat-card:hover{border-color:var(--accent)}
+.cat-card-header{
+display:flex;
+align-items:center;
+gap:10px;
+}
+.cat-icon{
+width:40px;
+height:40px;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+}
+.cat-name{font-weight:600;font-size:14px}
+.cat-amount{font-size:12px;color:var(--text2)}
+.cat-bar{
+height:4px;
+border-radius:2px;
+background:var(--bg);
+margin-top:4px;
+}
+.cat-bar-fill{
+height:100%;
+border-radius:2px;
+background:var(--accent);
+transition:width 0.5s ease;
+}
+.cat-add{
+border:1px dashed rgba(255,255,255,0.12);
+justify-content:center;
+align-items:center;
+color:var(--text3);
+}
+.cat-add:hover{border-color:var(--accent);color:var(--accent)}
+
+/* SETTINGS */
+.settings-list{
+display:flex;
+flex-direction:column;
+gap:2px;
+}
+.setting-item{
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:16px;
+background:var(--card);
+border-radius:12px;
+margin-bottom:8px;
+}
+.setting-info{}
+.setting-name{font-weight:600;font-size:14px}
+.setting-desc{font-size:11px;color:var(--text3);margin-top:2px}
+.toggle{
+width:48px;
+height:28px;
+border-radius:14px;
+background:var(--bg3);
+border:none;
+cursor:pointer;
+position:relative;
+transition:all 0.2s;
+}
+.toggle.active{background:var(--accent)}
+.toggle::after{
+content:'';
+position:absolute;
+width:22px;
+height:22px;
+border-radius:50%;
+background:#fff;
+top:3px;
+left:3px;
+transition:all 0.2s;
+box-shadow:0 2px 4px rgba(0,0,0,0.2);
+}
+.toggle.active::after{left:23px}
+.time-input{
+padding:8px 12px;
+border-radius:8px;
+border:1px solid rgba(255,255,255,0.08);
+background:var(--bg3);
+color:var(--text);
+font-size:13px;
+width:80px;
+text-align:center;
+}
+.time-range{
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+/* ICON PICKER */
+.icon-picker{
+display:grid;
+grid-template-columns:repeat(8,1fr);
+gap:8px;
+margin-top:8px;
+}
+.icon-option{
+width:40px;
+height:40px;
+border-radius:10px;
+border:2px solid transparent;
+background:var(--bg3);
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:18px;
+transition:all 0.15s;
+}
+.icon-option:hover{border-color:rgba(255,255,255,0.2)}
+.icon-option.selected{border-color:var(--accent);background:var(--accent-glow)}
+.color-picker{
+display:flex;
+gap:8px;
+margin-top:8px;
+}
+.color-option{
+width:32px;
+height:32px;
+border-radius:50%;
+border:3px solid transparent;
+cursor:pointer;
+transition:all 0.15s;
+}
+.color-option:hover{transform:scale(1.1)}
+.color-option.selected{border-color:#fff}
+
+/* EMPTY STATE */
+.empty-state{
+text-align:center;
+padding:48px 24px;
+color:var(--text3);
+}
+.empty-state svg{width:64px;height:64px;opacity:0.3;margin-bottom:16px}
+.empty-state p{font-size:14px}
+
+/* TABLET+ */
+@media(min-width:768px){
+.app{max-width:540px}
+.page-container{padding:0 20px 110px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+<div>
+<h1>省钱包</h1>
+<div class="topbar-date" id="todayDate"></div>
+</div>
+</div>
+
+<div class="page-container">
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+<div class="stat-row">
+<div class="stat-card">
+<div class="stat-label">本月支出</div>
+<div class="stat-value" id="monthTotal">¥0</div>
+<div class="stat-change up" id="monthChange">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+<span>+0%</span>
+</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">活跃订阅</div>
+<div class="stat-value" id="activeCount">0</div>
+<div class="stat-change" style="color:var(--text3)">
+<span id="pausedCount">0 暂停</span>
+</div>
+</div>
+</div>
+
+<div class="chart-container">
+<div class="chart-title">支出分布</div>
+<div id="pieChart"></div>
+</div>
+
+<div class="card">
+<div class="card-title">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+即将到期
+</div>
+<div class="expiry-list" id="expiryList"></div>
+</div>
+
+<div class="chart-container">
+<div class="chart-title">近6个月支出</div>
+<div id="lineChart"></div>
+</div>
+</div>
+
+<!-- SUBSCRIPTIONS -->
+<div id="page-subscriptions" class="page">
+<div class="filter-bar" id="filterBar"></div>
+<div class="card" style="overflow-x:auto;padding:0">
+<table class="sub-table">
+<thead>
+<tr>
+<th>名称</th>
+<th>分类</th>
+<th>费用</th>
+<th>剩余</th>
+<th>状态</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="subTableBody"></tbody>
+</table>
+</div>
+</div>
+
+<!-- CATEGORIES -->
+<div id="page-categories" class="page">
+<div class="cat-grid" id="catGrid"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="page">
+<div class="settings-list">
+<div class="setting-item">
+<div class="setting-info">
+<div class="setting-name">提醒总开关</div>
+<div class="setting-desc">开启后推送订阅到期提醒</div>
+</div>
+<button class="toggle active" id="toggleNotify" onclick="toggleSetting('notify')"></button>
+</div>
+<div class="setting-item">
+<div class="setting-info">
+<div class="setting-name">每日推送时间</div>
+<div class="setting-desc">接收每日订阅提醒</div>
+</div>
+<input type="time" class="time-input" id="notifyTime" value="10:00" onchange="saveSettings()">
+</div>
+<div class="setting-item">
+<div class="setting-info">
+<div class="setting-name">默认提醒天数</div>
+<div class="setting-desc">提前几天发送提醒</div>
+</div>
+<select class="form-select" style="width:auto" id="defaultDays" onchange="saveSettings()">
+<option value="3">3天</option>
+<option value="7" selected>7天</option>
+<option value="14">14天</option>
+<option value="30">30天</option>
+</select>
+</div>
+<div class="setting-item">
+<div class="setting-info">
+<div class="setting-name">免打扰时段</div>
+<div class="setting-desc">此时段不推送</div>
+</div>
+<div class="time-range">
+<input type="time" class="time-input" id="quietStart" value="22:00" onchange="saveSettings()">
+<span style="color:var(--text3)">至</span>
+<input type="time" class="time-input" id="quietEnd" value="08:00" onchange="saveSettings()">
+</div>
+</div>
+</div>
+<div style="margin-top:24px;padding:16px;background:var(--card);border-radius:14px">
+<div style="font-size:13px;color:var(--text2);margin-bottom:8px">数据管理</div>
+<button class="btn btn-danger" style="margin-top:8px" onclick="exportData()">导出数据</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+<div class="nav-item active" data-tab="dashboard">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+<span>仪表盘</span>
+</div>
+<div class="nav-item" data-tab="subscriptions">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
+<span>订阅</span>
+</div>
+<div class="nav-item" data-tab="categories">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+<span>分类</span>
+</div>
+<div class="nav-item" data-tab="settings">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+<span>设置</span>
+</div>
+</nav>
+
+<!-- FAB -->
+<button class="fab" onclick="openSubModal()" id="fabAdd">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<!-- SUBSCRIPTION MODAL -->
+<div class="modal-overlay" id="subModal">
+<div class="modal">
+<div class="modal-header">
+<h2 class="modal-title" id="subModalTitle">添加订阅</h2>
+<button class="modal-close" onclick="closeSubModal()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+</button>
+</div>
+<form id="subForm" onsubmit="saveSub(event)">
+<input type="hidden" id="subId">
+<div class="form-group">
+<label class="form-label">名称 <span>*</span></label>
+<input type="text" class="form-input" id="subName" required placeholder="例如：Netflix">
+</div>
+<div class="form-group">
+<label class="form-label">分类 <span>*</span></label>
+<select class="form-select" id="subCat" required></select>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">费用 <span>*</span></label>
+<input type="number" class="form-input" id="subAmount" required min="0" step="0.01" placeholder="0.00">
+</div>
+<div class="form-group">
+<label class="form-label">周期 <span>*</span></label>
+<select class="form-select" id="subCycle" required>
+<option value="monthly">每月</option>
+<option value="quarterly">每季</option>
+<option value="yearly">每年</option>
+</select>
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">下次扣费日 <span>*</span></label>
+<input type="date" class="form-input" id="subNextDate" required>
+</div>
+<div class="form-group">
+<label class="form-label">提醒天数</label>
+<select class="form-select" id="subRemind">
+<option value="3">提前3天</option>
+<option value="7" selected>提前7天</option>
+<option value="14">提前14天</option>
+<option value="30">提前30天</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">取消链接</label>
+<input type="url" class="form-input" id="subCancelUrl" placeholder="https://...">
+</div>
+<div class="form-group">
+<label class="form-label">备注</label>
+<input type="text" class="form-input" id="subNote" placeholder="可选备注">
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:8px">保存</button>
+</form>
+</div>
+</div>
+
+<!-- CATEGORY MODAL -->
+<div class="modal-overlay" id="catModal">
+<div class="modal">
+<div class="modal-header">
+<h2 class="modal-title" id="catModalTitle">添加分类</h2>
+<button class="modal-close" onclick="closeCatModal()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+</button>
+</div>
+<form id="catForm" onsubmit="saveCat(event)">
+<input type="hidden" id="catId">
+<div class="form-group">
+<label class="form-label">名称 <span>*</span></label>
+<input type="text" class="form-input" id="catName" required placeholder="分类名称">
+</div>
+<div class="form-group">
+<label class="form-label">图标</label>
+<div class="icon-picker" id="iconPicker"></div>
+</div>
+<div class="form-group">
+<label class="form-label">颜色</label>
+<div class="color-picker" id="colorPicker"></div>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:8px">保存</button>
+</form>
+</div>
+</div>
+
+<script>
+// ============ DATA ============
+const CAT_ICONS=['🍎','🎵','💼','☁️','🔧','🤖','🏠','📦','📚','🎮','🍜','✈️','💳','🎨','📱','🔒','📊','🎬','🛒','💡'];
+const CAT_COLORS=['#10d9a8','#a78bfa','#f87171','#fbbf24','#60a5fa','#f472b6','#34d399','#fb923c','#38bdf8','#e879f9'];
+const PRESET_CATS=[
+{id:'video',name:'视频',icon:'🍎',color:'#10d9a8'},
+{id:'music',name:'音乐',icon:'🎵',color:'#a78bfa'},
+{id:'office',name:'办公',icon:'💼',color:'#f87171'},
+{id:'cloud',name:'云存储',icon:'☁️',color:'#fbbf24'},
+{id:'tool',name:'工具',icon:'🔧',color:'#60a5fa'},
+{id:'ai',name:'AI',icon:'🤖',color:'#f472b6'},
+{id:'life',name:'生活',icon:'🏠',color:'#34d399'},
+{id:'other',name:'其他',icon:'📦',color:'#fb923c'}
+];
+
+let state={
+subscriptions:[],
+categories:[...PRESET_CATS],
+settings:{notify:true,notifyTime:'10:00',defaultDays:7,quietStart:'22:00',quietEnd:'08:00'}
+};
+
+function loadData(){
+const d=localStorage.getItem('moneybag_data');
+if(d){
+const parsed=JSON.parse(d);
+state.subscriptions=parsed.subscriptions||[];
+state.categories=parsed.categories||[...PRESET_CATS];
+state.settings={...state.settings,...parsed.settings};
+}else{
+state.subscriptions=getSampleSubs();
+}
+}
+
+function saveData(){
+localStorage.setItem('moneybag_data',JSON.stringify({
+subscriptions:state.subscriptions,
+categories:state.categories,
+settings:state.settings
+}));
+}
+
+function getSampleSubs(){
+const now=new Date();
+ const d=days=>{const dt=new Date(now);dt.setDate(dt.getDate()+days);return dt.toISOString().split('T')[0];};
+return[
+{id:1,name:'Netflix',catId:'video',amount:68,cycle:'monthly',nextDate:d(5),remindDays:7,status:'active',note:'4K套餐',cancelUrl:''},
+{id:2,name:'Spotify',catId:'music',amount:18,cycle:'monthly',nextDate:d(12),remindDays:7,status:'active',note:'家庭版',cancelUrl:''},
+{id:3,name:'Notion',catId:'office',amount:10,cycle:'monthly',nextDate:d(20),remindDays:7,status:'active',note:'',cancelUrl:''},
+{id:4,name:'iCloud+',catId:'cloud',amount:6,cycle:'monthly',nextDate:d(-3),remindDays:7,status:'active',note:'200G',cancelUrl:''},
+{id:5,name:'ChatGPT Plus',catId:'ai',amount:155,cycle:'monthly',nextDate:d(8),remindDays:7,status:'active',note:'',cancelUrl:''}
+];
+}
+
+// ============ UTILS ============
+function daysUntil(dateStr){
+const now=new Date();now.setHours(0,0,0,0);
+const d=new Date(dateStr);d.setHours(0,0,0,0);
+return Math.ceil((d-now)/(1000*60*60*24));
+}
+function formatMoney(n){return '¥'+n.toFixed(2)}
+function catById(id){return state.categories.find(c=>c.id===id)||{name:'其他',icon:'📦',color:'#888'}}
+
+// ============ ROUTING ============
+function initRouter(){
+const hash=window.location.hash.replace('#','')||'dashboard';
+showTab(hash);
+document.querySelectorAll('.nav-item').forEach(n=>{
+n.classList.toggle('active',n.dataset.tab===hash);
+});
+}
+window.addEventListener('hashchange',initRouter);
+
+function showTab(tab){
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.getElementById('page-'+tab)?.classList.add('active');
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.tab===tab));
+window.location.hash=tab;
+const fab=document.getElementById('fabAdd');
+fab.style.display=tab==='subscriptions'?'flex':'none';
+if(tab==='dashboard')renderDashboard();
+if(tab==='subscriptions')renderSubs();
+if(tab==='categories')renderCats();
+if(tab==='settings')renderSettings();
+}
+
+document.querySelectorAll('.nav-item').forEach(n=>{
+n.addEventListener('click',()=>showTab(n.dataset.tab));
+});
+
+// ============ DASHBOARD ============
+let pieChart,lineChart;
+
+function renderDashboard(){
+const now=new Date();
+document.getElementById('todayDate').textContent=now.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});
+
+const active=state.subscriptions.filter(s=>s.status==='active');
+const paused=state.subscriptions.filter(s=>s.status==='paused');
+document.getElementById('activeCount').textContent=active.length;
+document.getElementById('pausedCount').textContent=paused.length+' 暂停';
+
+// Monthly total
+let monthlyTotal=0;
+active.forEach(s=>{
+if(s.cycle==='monthly')monthlyTotal+=s.amount;
+else if(s.cycle==='quarterly')monthlyTotal+=s.amount/3;
+else if(s.cycle==='yearly')monthlyTotal+=s.amount/12;
+});
+document.getElementById('monthTotal').textContent=formatMoney(monthlyTotal);
+
+// Mock prev month
+document.getElementById('monthChange').className='stat-change '+(Math.random()>0.5?'up':'down');
+const pct=(Math.random()*30).toFixed(0);
+document.getElementById('monthChange').innerHTML=Math.random()>0.5?
+`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg><span>+${pct}%</span>`:
+`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg><span>-${pct}%</span>`;
+
+// Expiry list
+const expiry=active.map(s=>({...s,days:daysUntil(s.nextDate)}))
+.filter(s=>s.days<=30)
+.sort((a,b)=>a.days-b.days)
+.slice(0,5);
+const expiryEl=document.getElementById('expiryList');
+expiryEl.innerHTML=expiry.length?expiry.map(s=>{
+const cat=catById(s.catId);
+return`<div class="expiry-item ${s.days<7?'urgent':''}" onclick="editSub(${s.id})">
+<div class="expiry-icon" style="background:${cat.color}22">${cat.icon}</div>
+<div class="expiry-info">
+<div class="expiry-name">${s.name}</div>
+<div class="expiry-meta">下次 ${s.nextDate}</div>
+</div>
+<div class="expiry-days">${s.days<=0?'已到期':s.days+'天'}</div>
+</div>`;
+}).join(''):'<div class="empty-state"><p>暂无即将到期的订阅</p></div>';
+
+// Pie chart
+if(!pieChart)pieChart=echarts.init(document.getElementById('pieChart'));
+const catTotals={};
+active.forEach(s=>{
+const cat=catById(s.catId);
+const monthly=s.cycle==='monthly'?s.amount:s.cycle==='quarterly'?s.amount/3:s.amount/12;
+catTotals[cat.name]=(catTotals[cat.name]||0)+monthly;
+});
+const pieData=Object.entries(catTotals).map(([name,value])=>({name,value:Math.round(value*100)/100}));
+pieChart.setOption({
+backgroundColor:'transparent',
+tooltip:{trigger:'item',formatter:'{b}: ¥{c}/月 ({d}%)',backgroundColor:'#232a3b',borderColor:'transparent',textStyle:{color:'#e8eaed'}},
+series:[{type:'pie',radius:['45%','70%'],center:['50%','50%'],data:pieData,itemStyle:{borderRadius:6,borderColor:'#0f1117',borderWidth:3},label:{show:true,color:'#9ca3af',fontSize:11,formatter:'{b}\n{d}%'}}],
+textStyle:{fontFamily:'DM Sans'}
+});
+window.addEventListener('resize',()=>pieChart.resize());
+
+// Line chart
+if(!lineChart)lineChart=echarts.init(document.getElementById('lineChart'));
+const months=[];
+const monthData=[];
+for(let i=5;i>=0;i--){
+const d=new Date(now);d.setMonth(d.getMonth()-i);
+const label=d.toLocaleDateString('zh-CN',{month:'short'});
+months.push(label);
+monthData.push(Math.round((Math.random()*500+200)*100)/100);
+}
+lineChart.setOption({
+backgroundColor:'transparent',
+tooltip:{trigger:'axis',backgroundColor:'#232a3b',borderColor:'transparent',textStyle:{color:'#e8eaed'}},
+grid:{left:0,right:8,top:8,bottom:0,containLabel:true},
+xAxis:{type:'category',data:months,axisLine:{lineStyle:{color:'rgba(255,255,255,0.1)'}},axisLabel:{color:'#6b7280',fontSize:11},boundaryGap:false},
+yAxis:{type:'value',axisLine:{show:false},axisLabel:{color:'#6b7280',fontSize:10},splitLine:{lineStyle:{color:'rgba(255,255,255,0.05)'}}},
+series:[{data:monthData,type:'line',smooth:true,symbol:'circle',symbolSize:8,lineStyle:{color:'#10d9a8',width:3},itemStyle:{color:'#10d9a8',shadowColor:'rgba(16,217,168,0.5)',shadowBlur:10},areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(16,217,168,0.3)'},{offset:1,color:'rgba(16,217,168,0)'}]}}}]
+});
+window.addEventListener('resize',()=>lineChart.resize());
+}
+
+// ============ SUBSCRIPTIONS ============
+let currentFilter='all';
+
+function renderSubs(){
+const cats=state.categories;
+// Render filter bar
+const filterBar=document.getElementById('filterBar');
+const filters=[{id:'all',name:'全部'},...cats.map(c=>({id:c.id,name:c.icon+' '+c.name})),{id:'paused',name:'⏸ 已暂停'}];
+filterBar.innerHTML=filters.map(f=>`<div class="filter-chip ${currentFilter===f.id?'active':''}" onclick="setFilter('${f.id}')">${f.name}</div>`).join('');
+
+// Render table
+const active=state.subscriptions.filter(s=>s.status==='active');
+const paused=state.subscriptions.filter(s=>s.status==='paused');
+let subs=currentFilter==='all'?state.subscriptions:
+currentFilter==='paused'?paused:
+currentFilter==='none'?[]:
+state.subscriptions.filter(s=>s.catId===currentFilter);
+subs=subs.sort((a,b)=>a.nextDate>b.nextDate?1:-1);
+
+const tbody=document.getElementById('subTableBody');
+if(!subs.length){
+tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text3)">暂无订阅</td></tr>`;
+return;
+}
+tbody.innerHTML=subs.map(s=>{
+const cat=catById(s.catId);
+const days=daysUntil(s.nextDate);
+const cycleLabel={monthly:'/月',quarterly:'/季',yearly:'/年'}[s.cycle];
+return`<tr>
+<td class="sub-name">${s.name}</td>
+<td><span class="sub-cat" style="background:${cat.color}22">${cat.icon} ${cat.name}</span></td>
+<td>${formatMoney(s.amount)}${cycleLabel}</td>
+<td><span class="sub-days" style="background:${days<7?'var(--danger-bg)':days<14?'var(--warning-bg)':'rgba(255,255,255,0.06)'};color:${days<7?'var(--danger)':days<14?'var(--warning)':'var(--text)'}">${days<=0?'已到期':days+'天'}</span></td>
+<td><span class="status-${s.status}">${s.status==='active'?'活跃':'已暂停'}</span></td>
+<td class="sub-actions">
+<button class="action-btn" onclick="editSub(${s.id})" title="编辑">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+</button>
+<button class="action-btn" onclick="togglePause(${s.id})" title="${s.status==='active'?'暂停':'恢复'}">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${s.status==='active'?'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>':'<path d="M5 3l14 9-14 9V3z"/>'}</svg>
+</button>
+<button class="action-btn danger" onclick="deleteSub(${s.id})" title="删除">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+</button>
+</td>
+</tr>`;
+}).join('');
+}
+
+function setFilter(id){
+currentFilter=id;
+renderSubs();
+}
+
+// ============ SUB CRUD ============
+function openSubModal(id=null){
+const modal=document.getElementById('subModal');
+const title=document.getElementById('subModalTitle');
+const form=document.getElementById('subForm');
+const catSelect=document.getElementById('subCat');
+
+// Populate categories
+catSelect.innerHTML=state.categories.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+
+if(id){
+const sub=state.subscriptions.find(s=>s.id===id);
+title.textContent='编辑订阅';
+form.subId.value=sub.id;
+form.subName.value=sub.name;
+form.subCat.value=sub.catId;
+form.subAmount.value=sub.amount;
+form.subCycle.value=sub.cycle;
+form.subNextDate.value=sub.nextDate;
+form.subRemind.value=sub.remindDays;
+form.subCancelUrl.value=sub.cancelUrl||'';
+form.subNote.value=sub.note||'';
+}else{
+title.textContent='添加订阅';
+form.reset();
+form.subId.value='';
+}
+modal.classList.add('active');
+}
+
+function closeSubModal(){
+document.getElementById('subModal').classList.remove('active');
+}
+
+function editSub(id){openSubModal(id);}
+
+function saveSub(e){
+e.preventDefault();
+const form=e.target;
+const id=form.subId.value;
+const data={
+name:form.subName.value,
+catId:form.subCat.value,
+amount:parseFloat(form.subAmount.value),
+cycle:form.subCycle.value,
+nextDate:form.subNextDate.value,
+remindDays:parseInt(form.subRemind.value),
+cancelUrl:form.subCancelUrl.value,
+note:form.subNote.value
+};
+if(id){
+const idx=state.subscriptions.findIndex(s=>s.id===parseInt(id));
+state.subscriptions[idx]={...state.subscriptions[idx],...data};
+}else{
+data.id=Date.now();
+data.status='active';
+state.subscriptions.push(data);
+}
+saveData();
+closeSubModal();
+renderSubs();
+renderDashboard();
+}
+
+function togglePause(id){
+const sub=state.subscriptions.find(s=>s.id===id);
+sub.status=sub.status==='active'?'paused':'active';
+saveData();
+renderSubs();
+renderDashboard();
+}
+
+function deleteSub(id){
+if(!confirm('确定删除此订阅？'))return;
+state.subscriptions=state.subscriptions.filter(s=>s.id!==id);
+saveData();
+renderSubs();
+renderDashboard();
+}
+
+// ============ CATEGORIES ============
+let editingCatId=null;
+
+function renderCats(){
+const grid=document.getElementById('catGrid');
+const active=state.subscriptions.filter(s=>s.status==='active');
+const total=active.reduce((sum,s)=>{
+const m=s.cycle==='monthly'?s.amount:s.cycle==='quarterly'?s.amount/3:s.amount/12;
+return sum+m;
+},0);
+
+let html=state.categories.map(c=>{
+const catTotal=active.filter(s=>s.catId===c.id).reduce((sum,s)=>{
+const m=s.cycle==='monthly'?s.amount:s.cycle==='quarterly'?s.amount/3:s.amount/12;
+return sum+m;
+},0);
+const pct=total?Math.round(catTotal/total*100):0;
+return`<div class="cat-card" onclick="editCat('${c.id}')">
+<div class="cat-card-header">
+<div class="cat-icon" style="background:${c.color}33">${c.icon}</div>
+<div>
+<div class="cat-name">${c.name}</div>
+<div class="cat-amount">${formatMoney(catTotal)}/月</div>
+</div>
+</div>
+<div class="cat-bar"><div class="cat-bar-fill" style="width:${pct}%;background:${c.color}"></div></div>
+</div>`;
+}).join('');
+
+const isPreset=id=>PRESET_CATS.some(c=>c.id===id);
+const customCount=state.categories.filter(c=>!isPreset(c.id)).length;
+
+html+=`<div class="cat-card cat-add" onclick="openCatModal()">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+<div style="font-size:11px;margin-top:4px">${customCount>=10?'已达上限':'添加分类'}</div>
+</div>`;
+
+grid.innerHTML=html;
+}
+
+function openCatModal(id=null){
+editingCatId=id;
+const modal=document.getElementById('catModal');
+const title=document.getElementById('catModalTitle');
+const form=document.getElementById('catForm');
+
+// Icon picker
+const iconPicker=document.getElementById('iconPicker');
+iconPicker.innerHTML=CAT_ICONS.map(i=>`<div class="icon-option" onclick="selectIcon('${i}')">${i}</div>`).join('');
+
+// Color picker
+const colorPicker=document.getElementById('colorPicker');
+colorPicker.innerHTML=CAT_COLORS.map(c=>`<div class="color-option" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
+
+if(id){
+const cat=state.categories.find(c=>c.id===id);
+title.textContent='编辑分类';
+form.catName.value=cat.name;
+document.querySelectorAll('.icon-option').forEach(el=>el.classList.toggle('selected',el.textContent===cat.icon));
+document.querySelectorAll('.color-option').forEach(el=>el.style.borderColor=el.style.background===cat.color?'#fff':'transparent');
+}else{
+title.textContent='添加分类';
+form.reset();
+}
+modal.classList.add('active');
+}
+
+function closeCatModal(){
+document.getElementById('catModal').classList.remove('active');
+editingCatId=null;
+}
+
+function editCat(id){openCatModal(id);}
+
+function selectIcon(icon){
+document.querySelectorAll('.icon-option').forEach(el=>el.classList.toggle('selected',el.textContent===icon));
+}
+function selectColor(color){
+document.querySelectorAll('.color-option').forEach(el=>el.style.borderColor=el.style.background===color?'#fff':'transparent');
+}
+
+function saveCat(e){
+e.preventDefault();
+const form=e.target;
+const selectedIcon=document.querySelector('.icon-option.selected');
+const selectedColor=document.querySelector('.color-option[style*="border-color: rgb(255, 255, 255)"]')||document.querySelector('.color-option');
+
+const data={
+name:form.catName.value,
+icon:selectedIcon?selectedIcon.textContent:'📦',
+color:selectedColor?selectedColor.style.background:'#10d9a8'
+};
+
+if(editingCatId){
+const idx=state.categories.findIndex(c=>c.id===editingCatId);
+if(PRESET_CATS.some(p=>p.id===editingCatId)){
+state.categories[idx]={...state.categories[idx],...data};
+}else{
+state.categories[idx]={...state.categories[idx],...data};
+}
+}else{
+const isPreset=id=>PRESET_CATS.some(c=>c.id===id);
+if(state.categories.filter(c=>!isPreset(c.id)).length>=10){
+alert('自定义分类最多10个');
+return;
+}
+data.id='custom_'+Date.now();
+state.categories.push(data);
+}
+saveData();
+closeCatModal();
+renderCats();
+renderSubs();
+renderDashboard();
+}
+
+// ============ SETTINGS ============
+function renderSettings(){
+const s=state.settings;
+document.getElementById('toggleNotify').classList.toggle('active',s.notify);
+document.getElementById('notifyTime').value=s.notifyTime;
+document.getElementById('defaultDays').value=s.defaultDays;
+document.getElementById('quietStart').value=s.quietStart;
+document.getElementById('quietEnd').value=s.quietEnd;
+}
+
+function toggleSetting(key){
+state.settings[key]=!state.settings[key];
+if(key==='notify'){
+document.getElementById('toggleNotify').classList.toggle('active');
+}
+saveData();
+}
+
+function saveSettings(){
+state.settings.notifyTime=document.getElementById('notifyTime').value;
+state.settings.defaultDays=parseInt(document.getElementById('defaultDays').value);
+state.settings.quietStart=document.getElementById('quietStart').value;
+state.settings.quietEnd=document.getElementById('quietEnd').value;
+saveData();
+}
+
+function exportData(){
+const dataStr=JSON.stringify(state,null,2);
+const blob=new Blob([dataStr],{type:'application/json'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download='moneybag_backup_'+new Date().toISOString().split('T')[0]+'.json';
+a.click();
+URL.revokeObjectURL(url);
+}
+
+// ============ INIT ============
+loadData();
+initRouter();
+</script>
+</body>
+</html>
