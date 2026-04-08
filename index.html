@@ -790,7 +790,19 @@ color:var(--text3);
 </div>
 <div style="margin-top:24px;padding:16px;background:var(--card);border-radius:14px">
 <div style="font-size:13px;color:var(--text2);margin-bottom:8px">数据管理</div>
-<button class="btn btn-danger" style="margin-top:8px" onclick="exportData()">导出数据</button>
+<button class="btn btn-secondary" style="margin-top:8px;margin-bottom:8px" onclick="testFeishuCard()">测试飞书提醒卡片</button>
+<button class="btn btn-danger" onclick="exportData()">导出数据</button>
+</div>
+<div id="feishuCardModal" class="modal-overlay" onclick="closeFeishuCard(event)">
+<div class="modal" style="max-width:400px" onclick="event.stopPropagation()">
+<div class="modal-header">
+<h2 class="modal-title">飞书卡片预览</h2>
+<button class="modal-close" onclick="closeFeishuCard()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+</button>
+</div>
+<div id="feishuCardContent" style="font-size:13px;line-height:1.6"></div>
+</div>
 </div>
 </div>
 </div>
@@ -854,9 +866,15 @@ color:var(--text3);
 </select>
 </div>
 </div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">首次订阅日 <span>*</span></label>
+<input type="date" class="form-input" id="subFirstDate" required>
+</div>
 <div class="form-group">
 <label class="form-label">下次扣费日 <span>*</span></label>
 <input type="date" class="form-input" id="subNextDate" required>
+</div>
 </div>
 <div class="form-group">
 <label class="form-label">提醒天数</label>
@@ -953,11 +971,11 @@ function getSampleSubs(){
 const now=new Date();
  const d=days=>{const dt=new Date(now);dt.setDate(dt.getDate()+days);return dt.toISOString().split('T')[0];};
 return[
-{id:1,name:'Netflix',catId:'video',amount:68,cycle:'monthly',nextDate:d(5),remindDays:7,status:'active',note:'4K套餐',cancelUrl:''},
-{id:2,name:'Spotify',catId:'music',amount:18,cycle:'monthly',nextDate:d(12),remindDays:7,status:'active',note:'家庭版',cancelUrl:''},
-{id:3,name:'Notion',catId:'office',amount:10,cycle:'monthly',nextDate:d(20),remindDays:7,status:'active',note:'',cancelUrl:''},
-{id:4,name:'iCloud+',catId:'cloud',amount:6,cycle:'monthly',nextDate:d(-3),remindDays:7,status:'active',note:'200G',cancelUrl:''},
-{id:5,name:'ChatGPT Plus',catId:'ai',amount:155,cycle:'monthly',nextDate:d(8),remindDays:7,status:'active',note:'',cancelUrl:''}
+{id:1,name:'Netflix',catId:'video',amount:68,cycle:'monthly',nextDate:d(5),remindDays:7,status:'active',note:'4K套餐',cancelUrl:'',firstDate:d(-25)},
+{id:2,name:'Spotify',catId:'music',amount:18,cycle:'monthly',nextDate:d(12),remindDays:7,status:'active',note:'家庭版',cancelUrl:'',firstDate:d(-12)},
+{id:3,name:'Notion',catId:'office',amount:10,cycle:'monthly',nextDate:d(20),remindDays:7,status:'active',note:'',cancelUrl:'',firstDate:d(-180)},
+{id:4,name:'iCloud+',catId:'cloud',amount:6,cycle:'monthly',nextDate:d(-3),remindDays:7,status:'active',note:'200G',cancelUrl:'',firstDate:d(-400)},
+{id:5,name:'ChatGPT Plus',catId:'ai',amount:155,cycle:'monthly',nextDate:d(8),remindDays:7,status:'active',note:'',cancelUrl:'',firstDate:d(-60)}
 ];
 }
 
@@ -1018,12 +1036,29 @@ else if(s.cycle==='yearly')monthlyTotal+=s.amount/12;
 });
 document.getElementById('monthTotal').textContent=formatMoney(monthlyTotal);
 
-// Mock prev month
-document.getElementById('monthChange').className='stat-change '+(Math.random()>0.5?'up':'down');
-const pct=(Math.random()*30).toFixed(0);
-document.getElementById('monthChange').innerHTML=Math.random()>0.5?
+// Calculate previous month total from subscription history
+let prevMonthTotal=0;
+const lastMonth=new Date(now.getFullYear(),now.getMonth()-1,1);
+active.forEach(s=>{
+const firstDate=new Date(s.firstDate);
+if(firstDate<=lastMonth){
+if(s.cycle==='monthly')prevMonthTotal+=s.amount;
+else if(s.cycle==='quarterly')prevMonthTotal+=s.amount/3;
+else if(s.cycle==='yearly')prevMonthTotal+=s.amount/12;
+}
+});
+// Compare
+const changeEl=document.getElementById('monthChange');
+if(prevMonthTotal>0){
+const pct=((monthlyTotal-prevMonthTotal)/prevMonthTotal*100).toFixed(0);
+changeEl.className='stat-change '+(pct>=0?'up':'down');
+changeEl.innerHTML=pct>=0?
 `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg><span>+${pct}%</span>`:
-`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg><span>-${pct}%</span>`;
+`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg><span>${pct}%</span>`;
+}else{
+changeEl.className='stat-change';
+changeEl.innerHTML='<span style="color:var(--text3)">无上月数据</span>';
+}
 
 // Expiry list
 const expiry=active.map(s=>({...s,days:daysUntil(s.nextDate)}))
@@ -1065,10 +1100,21 @@ if(!lineChart)lineChart=echarts.init(document.getElementById('lineChart'));
 const months=[];
 const monthData=[];
 for(let i=5;i>=0;i--){
-const d=new Date(now);d.setMonth(d.getMonth()-i);
+const d=new Date(now.getFullYear(),now.getMonth()-i,1);
 const label=d.toLocaleDateString('zh-CN',{month:'short'});
 months.push(label);
-monthData.push(Math.round((Math.random()*500+200)*100)/100);
+// Calculate actual monthly total based on active subscriptions that existed then
+let monthTotal=0;
+const monthEnd=new Date(now.getFullYear(),now.getMonth()-i+1,0);
+active.forEach(s=>{
+const firstDate=new Date(s.firstDate);
+if(firstDate<=monthEnd){
+if(s.cycle==='monthly')monthTotal+=s.amount;
+else if(s.cycle==='quarterly')monthTotal+=s.amount/3;
+else if(s.cycle==='yearly')monthTotal+=s.amount/12;
+}
+});
+monthData.push(Math.round(monthTotal*100)/100);
 }
 lineChart.setOption({
 backgroundColor:'transparent',
@@ -1153,6 +1199,7 @@ form.subName.value=sub.name;
 form.subCat.value=sub.catId;
 form.subAmount.value=sub.amount;
 form.subCycle.value=sub.cycle;
+form.subFirstDate.value=sub.firstDate||'';
 form.subNextDate.value=sub.nextDate;
 form.subRemind.value=sub.remindDays;
 form.subCancelUrl.value=sub.cancelUrl||'';
@@ -1161,6 +1208,7 @@ form.subNote.value=sub.note||'';
 title.textContent='添加订阅';
 form.reset();
 form.subId.value='';
+form.subFirstDate.value=new Date().toISOString().split('T')[0];
 }
 modal.classList.add('active');
 }
@@ -1180,6 +1228,7 @@ name:form.subName.value,
 catId:form.subCat.value,
 amount:parseFloat(form.subAmount.value),
 cycle:form.subCycle.value,
+firstDate:form.subFirstDate.value,
 nextDate:form.subNextDate.value,
 remindDays:parseInt(form.subRemind.value),
 cancelUrl:form.subCancelUrl.value,
@@ -1366,6 +1415,72 @@ a.href=url;
 a.download='moneybag_backup_'+new Date().toISOString().split('T')[0]+'.json';
 a.click();
 URL.revokeObjectURL(url);
+}
+
+// ============ FEISHU NOTIFICATION ============
+function testFeishuCard(){
+const active=state.subscriptions.filter(s=>s.status==='active');
+const upcoming=active.map(s=>({...s,days:daysUntil(s.nextDate)}))
+.filter(s=>s.days<=30&&s.days>=0)
+.sort((a,b)=>a.days-b.days);
+
+if(upcoming.length===0){
+document.getElementById('feishuCardContent').innerHTML='<div class="empty-state"><p>30天内无到期订阅</p></div>';
+}else{
+const sub=upcoming[0];
+const cat=catById(sub.catId);
+const cycleLabel={monthly:'/月',quarterly:'/季',yearly:'/年'}[sub.cycle];
+
+const cardHTML=`
+<div style="background:#1a1a2e;border-radius:12px;padding:20px;font-family:inherit">
+<div style="font-size:16px;font-weight:600;margin-bottom:12px">📢 订阅到期提醒</div>
+<div style="background:#16213e;border-radius:8px;padding:14px;margin-bottom:12px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+<span style="font-size:24px">${cat.icon}</span>
+<div>
+<div style="font-weight:600;font-size:15px">${sub.name}</div>
+<div style="font-size:12px;color:#888">${cat.name}</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+<div><span style="color:#888">到期日期</span><br><span style="font-weight:500">${sub.nextDate}</span></div>
+<div><span style="color:#888">费用</span><br><span style="font-weight:500">${formatMoney(sub.amount)}${cycleLabel}</span></div>
+<div><span style="color:#888">剩余</span><br><span style="font-weight:600;color:${sub.days<7?'#f87171':'#10d9a8'}">${sub.days}天</span></div>
+</div>
+</div>
+<div style="display:flex;gap:10px">
+<button onclick="window.open('${sub.cancelUrl||'#'}')" style="flex:1;padding:10px;border-radius:8px;border:none;background:#10d9a8;color:#000;font-weight:600;cursor:pointer">继续订阅</button>
+<button onclick="window.open('${sub.cancelUrl||'#'}')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #444;background:transparent;color:#888;font-weight:500;cursor:pointer">取消订阅</button>
+</div>
+</div>
+<div style="margin-top:16px;padding:12px;background:#0f1117;border-radius:8px;font-size:12px">
+<div style="color:#888;margin-bottom:6px">卡片 JSON（可用于飞书机器人）:</div>
+<pre id="feishuJSON" style="font-size:11px;overflow-x:auto;color:#10d9a8;margin:0"></pre>
+</div>`;
+document.getElementById('feishuCardContent').innerHTML=cardHTML;
+
+// Generate Feishu card JSON
+const feishuJSON={
+msg_type:"interactive",
+card:{
+header:{title:{tag:"plain_text",content:"📢 订阅到期提醒",emoji:true},template:"red"},
+elements:[{tag:"div",text:{content:`**${sub.name}** | ${cat.icon} ${cat.name}`,tag:"lark_md`"}},
+
+{tag:"hr`"},
+{tag:"div",fields:[{is_short:true,text:{content:`**到期日期**\n${sub.nextDate}`,tag:"lark_md"}},{is_short:true,text:{content:`**剩余天数**\n${sub.days}天`,tag:"lark_md"}}]},
+{tag:"div",fields:[{is_short:true,text:{content:`**费用**\n${formatMoney(sub.amount)}${cycleLabel}`,tag:"lark_md"}}]},
+{tag:"action",actions:[{tag:"button",text:{content:"继续订阅",emoji:true},type:"primary",url:sub.cancelUrl||'#'},{tag:"button",text:{content:"取消订阅",emoji:true},type:"default",url:sub.cancelUrl||'#'}]}]
+}
+};
+document.getElementById('feishuJSON').textContent=JSON.stringify(feishuJSON,null,2);
+}
+document.getElementById('feishuCardModal').classList.add('active');
+}
+
+function closeFeishuCard(e){
+if(!e||e.target===document.getElementById('feishuCardModal')){
+document.getElementById('feishuCardModal').classList.remove('active');
+}
 }
 
 // ============ INIT ============
