@@ -828,6 +828,43 @@ color:var(--text3);
 </div>
 </nav>
 
+<!-- DETAIL PAGE -->
+<div id="page-detail" class="page">
+  <div style="padding:16px">
+    <button onclick="goBack()" style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:8px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;font-size:13px;margin-bottom:16px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </button>
+    <div style="background:var(--card);border-radius:16px;padding:24px;text-align:center;margin-bottom:16px">
+      <div id="detailIcon" style="width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;background:var(--bg3)"></div>
+      <div id="detailName" style="font-size:20px;font-weight:700"></div>
+      <div id="detailAmount" style="font-size:14px;color:var(--text2);margin-top:4px"></div>
+      <span id="detailBadge" style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-top:8px"></span>
+    </div>
+    <div style="background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px">基本信息</div>
+      <div id="detailBasic" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px"></div>
+    </div>
+    <div id="detailNoteSection" style="background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;display:none">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">备注</div>
+      <div id="detailNote" style="padding:12px;background:var(--bg3);border-radius:8px;font-size:14px;line-height:1.5"></div>
+    </div>
+    <div id="detailUrlSection" style="background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;display:none">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">取消链接</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="detailUrl" readonly style="flex:1;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:var(--bg3);color:var(--text);font-size:13px">
+        <button onclick="copyCancelUrl()" style="padding:10px 16px;border-radius:10px;border:none;background:var(--bg3);color:var(--text);cursor:pointer;font-size:13px;font-weight:500">复制</button>
+        <button onclick="openCancelUrl()" style="padding:10px 16px;border-radius:10px;border:none;background:var(--accent);color:#000;cursor:pointer;font-size:13px;font-weight:600">打开</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="editCurrentSub()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--bg3);color:var(--text);cursor:pointer;font-size:14px;font-weight:500">编辑</button>
+      <button onclick="togglePauseCurrent()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--bg3);color:var(--text);cursor:pointer;font-size:14px;font-weight:500">暂停</button>
+      <button onclick="deleteCurrentSub()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--danger-bg);color:var(--danger);cursor:pointer;font-size:14px;font-weight:500">删除</button>
+    </div>
+  </div>
+</div>
+
 <!-- FAB -->
 <button class="fab" onclick="openSubModal()" id="fabAdd">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -991,6 +1028,11 @@ function catById(id){return state.categories.find(c=>c.id===id)||{name:'其他',
 // ============ ROUTING ============
 function initRouter(){
 const hash=window.location.hash.replace('#','')||'dashboard';
+if(hash.startsWith('detail/')){
+  const id=parseInt(hash.split('/')[1]);
+  if(id) showDetail(id);
+  return;
+}
 showTab(hash);
 document.querySelectorAll('.nav-item').forEach(n=>{
 n.classList.toggle('active',n.dataset.tab===hash);
@@ -1068,7 +1110,7 @@ const expiry=active.map(s=>({...s,days:daysUntil(s.nextDate)}))
 const expiryEl=document.getElementById('expiryList');
 expiryEl.innerHTML=expiry.length?expiry.map(s=>{
 const cat=catById(s.catId);
-return`<div class="expiry-item ${s.days<7?'urgent':''}" onclick="editSub(${s.id})">
+return`<div class="expiry-item ${s.days<7?'urgent':''}" onclick="showDetail(${s.id})">
 <div class="expiry-icon" style="background:${cat.color}22">${cat.icon}</div>
 <div class="expiry-info">
 <div class="expiry-name">${s.name}</div>
@@ -1155,7 +1197,7 @@ tbody.innerHTML=subs.map(s=>{
 const cat=catById(s.catId);
 const days=daysUntil(s.nextDate);
 const cycleLabel={monthly:'/月',quarterly:'/季',yearly:'/年'}[s.cycle];
-return`<tr>
+return`<tr onclick="showDetail(${s.id})" style="cursor:pointer">
 <td class="sub-name">${s.name}</td>
 <td><span class="sub-cat" style="background:${cat.color}22">${cat.icon} ${cat.name}</span></td>
 <td>${formatMoney(s.amount)}${cycleLabel}</td>
@@ -1481,6 +1523,63 @@ function closeFeishuCard(e){
 if(!e||e.target===document.getElementById('feishuCardModal')){
 document.getElementById('feishuCardModal').classList.remove('active');
 }
+}
+
+let currentDetailId=null;
+
+function showDetail(id){
+  currentDetailId=id;
+  const sub=state.subscriptions.find(s=>s.id===id);
+  if(!sub)return;
+  const cat=catById(sub.catId);
+  const days=daysUntil(sub.nextDate);
+  const cycleLabel={monthly:'月',quarterly:'季',yearly:'年'}[sub.cycle];
+  document.getElementById('detailIcon').textContent=cat.icon;
+  document.getElementById('detailIcon').style.background=cat.color+'22';
+  document.getElementById('detailName').textContent=sub.name;
+  document.getElementById('detailAmount').textContent=formatMoney(sub.amount)+'/'+cycleLabel;
+  const badge=document.getElementById('detailBadge');
+  badge.textContent=sub.status==='active'?'活跃':'已暂停';
+  badge.style.background=sub.status==='active'?'rgba(16,217,168,0.1)':'rgba(251,191,36,0.1)';
+  badge.style.color=sub.status==='active'?'var(--accent)':'var(--warning)';
+  document.getElementById('detailBasic').innerHTML=[
+    ['分类',cat.icon+' '+cat.name],['下次扣款',sub.nextDate],['剩余天数',days+'天'],['首次订阅',sub.firstDate||'-'],['提醒设置','提前'+sub.remindDays+'天'],['费用周期',cycleLabel]
+  ].map(([k,v])=>'<div><span style="color:var(--text3)">'+k+'</span><span style="font-weight:600">'+v+'</span></div>').join('');
+  const noteSection=document.getElementById('detailNoteSection');
+  if(sub.note){document.getElementById('detailNote').textContent=sub.note;noteSection.style.display='block'}else{noteSection.style.display='none'}
+  const urlSection=document.getElementById('detailUrlSection');
+  if(sub.cancelUrl){document.getElementById('detailUrl').value=sub.cancelUrl;urlSection.style.display='block'}else{urlSection.style.display='none'}
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+  document.getElementById('fabAdd').style.display='none';
+  window.location.hash='detail/'+id;
+}
+
+function goBack(){
+  if(window.history.length>1){window.history.back()}else{window.location.hash='subscriptions'}
+  document.getElementById('fabAdd').style.display='flex';
+}
+
+function copyCancelUrl(){
+  const url=document.getElementById('detailUrl').value;
+  if(url) navigator.clipboard.writeText(url).then(()=>showToast('已复制到剪贴板'));
+}
+
+function openCancelUrl(){
+  const url=document.getElementById('detailUrl').value;
+  if(url) window.open(url,'_blank');
+}
+
+function editCurrentSub(){closeSubModal();openSubModal(currentDetailId);}
+function togglePauseCurrent(){togglePause(currentDetailId);showDetail(currentDetailId);}
+function deleteCurrentSub(){if(confirm('确定删除此订阅？')){deleteSub(currentDetailId);goBack()}}
+
+function showToast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--accent);color:#000;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2000);
 }
 
 // ============ INIT ============
