@@ -790,22 +790,8 @@ color:var(--text3);
 </div>
 <div style="margin-top:24px;padding:16px;background:var(--card);border-radius:14px">
 <div style="font-size:13px;color:var(--text2);margin-bottom:8px">数据管理</div>
-<button class="btn btn-secondary" style="margin-top:8px;margin-bottom:8px" onclick="testFeishuCard()">测试飞书提醒卡片</button>
+<button class="btn btn-secondary" style="margin-top:8px;margin-bottom:8px" onclick="testWalletNotify()">测试钱包提醒</button>
 <button class="btn btn-danger" onclick="exportData()">导出数据</button>
-</div>
-<div id="feishuCardModal" class="modal-overlay" onclick="closeFeishuCard(event)">
-<div class="modal" style="max-width:400px" onclick="event.stopPropagation()">
-<div class="modal-header">
-<h2 class="modal-title">飞书卡片预览</h2>
-<button class="modal-close" onclick="closeFeishuCard()">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-</button>
-</div>
-<div id="feishuCardContent" style="font-size:13px;line-height:1.6"></div>
-</div>
-</div>
-</div>
-</div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -1459,69 +1445,30 @@ a.click();
 URL.revokeObjectURL(url);
 }
 
-// ============ FEISHU NOTIFICATION ============
-function testFeishuCard(){
+// ============ WALLET NOTIFICATION ============
+function sendWalletNotify(sub){
+if(typeof wallet!=='undefined'&&wallet.notify){
+const cat=catById(sub.catId);
+wallet.notify({
+title:'订阅到期提醒',
+content:`${cat.icon} ${sub.name} 将于 ${sub.nextDate} 扣款 ${formatMoney(sub.amount)}`,
+subscription_id:sub.id,
+amount:sub.amount,
+next_date:sub.nextDate
+});
+}else{
+console.warn('Wallet SDK not available');
+}
+}
+
+function testWalletNotify(){
 const active=state.subscriptions.filter(s=>s.status==='active');
 const upcoming=active.map(s=>({...s,days:daysUntil(s.nextDate)}))
 .filter(s=>s.days<=30&&s.days>=0)
 .sort((a,b)=>a.days-b.days);
-
-if(upcoming.length===0){
-document.getElementById('feishuCardContent').innerHTML='<div class="empty-state"><p>30天内无到期订阅</p></div>';
-}else{
-const sub=upcoming[0];
-const cat=catById(sub.catId);
-const cycleLabel={monthly:'/月',quarterly:'/季',yearly:'/年'}[sub.cycle];
-
-const cardHTML=`
-<div style="background:#1a1a2e;border-radius:12px;padding:20px;font-family:inherit">
-<div style="font-size:16px;font-weight:600;margin-bottom:12px">📢 订阅到期提醒</div>
-<div style="background:#16213e;border-radius:8px;padding:14px;margin-bottom:12px">
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-<span style="font-size:24px">${cat.icon}</span>
-<div>
-<div style="font-weight:600;font-size:15px">${sub.name}</div>
-<div style="font-size:12px;color:#888">${cat.name}</div>
-</div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
-<div><span style="color:#888">到期日期</span><br><span style="font-weight:500">${sub.nextDate}</span></div>
-<div><span style="color:#888">费用</span><br><span style="font-weight:500">${formatMoney(sub.amount)}${cycleLabel}</span></div>
-<div><span style="color:#888">剩余</span><br><span style="font-weight:600;color:${sub.days<7?'#f87171':'#10d9a8'}">${sub.days}天</span></div>
-</div>
-</div>
-<div style="display:flex;gap:10px">
-<button onclick="window.open('${sub.cancelUrl||'#'}')" style="flex:1;padding:10px;border-radius:8px;border:none;background:#10d9a8;color:#000;font-weight:600;cursor:pointer">继续订阅</button>
-<button onclick="window.open('${sub.cancelUrl||'#'}')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #444;background:transparent;color:#888;font-weight:500;cursor:pointer">取消订阅</button>
-</div>
-</div>
-<div style="margin-top:16px;padding:12px;background:#0f1117;border-radius:8px;font-size:12px">
-<div style="color:#888;margin-bottom:6px">卡片 JSON（可用于飞书机器人）:</div>
-<pre id="feishuJSON" style="font-size:11px;overflow-x:auto;color:#10d9a8;margin:0"></pre>
-</div>`;
-document.getElementById('feishuCardContent').innerHTML=cardHTML;
-
-// Generate Feishu card JSON
-const feishuJSON={
-msg_type:"interactive",
-card:{
-header:{title:{tag:"plain_text",content:"📢 订阅到期提醒",emoji:true},template:"red"},
-elements:[{tag:"div",text:{content:`**${sub.name}** | ${cat.icon} ${cat.name}`,tag:"lark_md`"}},
-
-{tag:"hr`"},
-{tag:"div",fields:[{is_short:true,text:{content:`**到期日期**\n${sub.nextDate}`,tag:"lark_md"}},{is_short:true,text:{content:`**剩余天数**\n${sub.days}天`,tag:"lark_md"}}]},
-{tag:"div",fields:[{is_short:true,text:{content:`**费用**\n${formatMoney(sub.amount)}${cycleLabel}`,tag:"lark_md"}}]},
-{tag:"action",actions:[{tag:"button",text:{content:"继续订阅",emoji:true},type:"primary",url:sub.cancelUrl||'#'},{tag:"button",text:{content:"取消订阅",emoji:true},type:"default",url:sub.cancelUrl||'#'}]}]
-}
-};
-document.getElementById('feishuJSON').textContent=JSON.stringify(feishuJSON,null,2);
-}
-document.getElementById('feishuCardModal').classList.add('active');
-}
-
-function closeFeishuCard(e){
-if(!e||e.target===document.getElementById('feishuCardModal')){
-document.getElementById('feishuCardModal').classList.remove('active');
+if(upcoming.length>0){
+sendWalletNotify(upcoming[0]);
+showToast('已发送钱包提醒');
 }
 }
 
