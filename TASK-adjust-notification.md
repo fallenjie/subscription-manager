@@ -23,8 +23,8 @@ DONE
 - 钱包 SDK 接口：`wallet.notify({ title, content, subscription_id, amount, next_date })`
 
 ## 输出
-- 更新后的 index.html
-- 更新的 PRD（飞书文档）
+- ✅ 更新后的 index.html
+- ❌ 飞书文档更新失败（权限不足，需手动更新）
 
 ## 创建时间
 2026-04-15
