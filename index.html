@@ -268,7 +268,7 @@ color:var(--danger);
 display:flex;
 gap:8px;
 overflow-x:auto;
-padding:2px 0 14px;
+padding:0 0 14px;
 scrollbar-width:none;
 }
 .filter-bar::-webkit-scrollbar{display:none}
@@ -280,86 +280,145 @@ font-weight:500;
 white-space:nowrap;
 cursor:pointer;
 transition:all 0.2s;
-background:var(--bg3);
+background:var(--bg2);
 color:var(--text2);
-border:1px solid transparent;
+border:1.5px solid transparent;
 flex-shrink:0;
 }
 .filter-chip.active{
 background:var(--accent);
-color:#FFFFFF;
+color:#fff;
 font-weight:600;
+box-shadow:0 2px 8px rgba(0,122,255,0.25);
 }
-.filter-chip:hover:not(.active){border-color:var(--accent)}
-
-/* TABLE */
-.sub-table{
-width:100%;
-border-collapse:collapse;
-}
-.sub-table th{
-text-align:left;
-font-size:10px;
-font-weight:600;
-color:var(--text3);
-text-transform:uppercase;
-letter-spacing:0.5px;
-padding:8px 10px;
-border-bottom:1px solid rgba(0,0,0,0.06);
-}
-.sub-table td{
-padding:14px 10px;
-font-size:13px;
-border-bottom:1px solid rgba(0,0,0,0.03);
-vertical-align:middle;
-}
-.sub-table tr:last-child td{border-bottom:none}
-.sub-table .sub-name{
-font-weight:600;
-font-size:14px;
-}
-.sub-table .sub-cat{
-display:inline-flex;
-align-items:center;
-gap:5px;
-padding:3px 9px;
-border-radius:6px;
-font-size:11px;
-background:var(--bg3);
-}
-.sub-table .sub-days{
-font-size:12px;
-padding:3px 8px;
-border-radius:6px;
-}
-.sub-table .status-active{
-background:rgba(16,217,168,0.1);
+.filter-chip:hover:not(.active){
+border-color:var(--accent);
 color:var(--accent);
 }
-.sub-table .status-paused{
-background:rgba(251,191,36,0.1);
-color:var(--warning);
-}
-.sub-table .sub-actions{
+
+/* SUBSCRIPTION CARDS */
+.sub-list{
 display:flex;
-gap:4px;
+flex-direction:column;
+gap:10px;
+padding-bottom:16px;
 }
-.action-btn{
-width:30px;
-height:30px;
-border-radius:8px;
-border:none;
+.sub-card{
+background:var(--card);
+border-radius:var(--radius);
+padding:16px;
+border:1px solid rgba(0,0,0,0.04);
+box-shadow:0 1px 6px rgba(0,0,0,0.05);
 cursor:pointer;
+transition:all .2s;
+}
+.sub-card:hover{
+box-shadow:var(--shadow);
+transform:translateY(-1px);
+}
+.sub-card:active{transform:scale(.99)}
+.sub-card-top{
+display:flex;
+align-items:flex-start;
+gap:12px;
+margin-bottom:10px;
+}
+.sub-card-icon{
+font-size:26px;
+width:44px;
+height:44px;
+border-radius:12px;
 display:flex;
 align-items:center;
 justify-content:center;
-transition:all 0.15s;
-background:transparent;
+flex-shrink:0;
+}
+.sub-card-info{flex:1;min-width:0}
+.sub-card-name{
+font-size:15px;
+font-weight:700;
+color:var(--text);
+margin-bottom:3px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+.sub-card-date{
+font-size:11px;
 color:var(--text3);
 }
-.action-btn:hover{background:var(--bg3);color:var(--text)}
-.action-btn.danger:hover{background:var(--danger-bg);color:var(--danger)}
-.action-btn svg{width:15px;height:15px}
+.sub-card-right{
+text-align:right;
+flex-shrink:0;
+}
+.sub-card-amount{
+font-size:19px;
+font-weight:700;
+color:var(--accent);
+font-family:'Space Grotesk',sans-serif;
+letter-spacing:-0.5px;
+}
+.sub-card-period{
+font-size:11px;
+color:var(--text3);
+margin-top:2px;
+}
+.sub-card-tags{
+display:flex;
+gap:5px;
+flex-wrap:wrap;
+margin-bottom:10px;
+}
+.sub-tag{
+padding:3px 9px;
+border-radius:6px;
+font-size:11px;
+font-weight:600;
+}
+.sub-tag-cat{background:var(--bg2);color:var(--text2)}
+.sub-tag-active{background:rgba(16,185,129,0.1);color:#10B981}
+.sub-tag-paused{background:rgba(245,158,11,0.1);color:#F59E0B}
+.sub-tag-overdue{background:rgba(239,68,68,0.08);color:#EF4444}
+.sub-card-footer{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding-top:10px;
+border-top:1px solid rgba(0,0,0,0.04);
+}
+.sub-card-meta{
+font-size:12px;
+color:var(--text3);
+}
+.sub-actions{
+display:flex;
+gap:5px;
+}
+.sub-action-btn{
+padding:6px 11px;
+border-radius:8px;
+font-size:12px;
+font-weight:600;
+cursor:pointer;
+border:none;
+transition:all .15s;
+font-family:inherit;
+}
+.sub-action-btn.edit{background:var(--bg2);color:var(--text2)}
+.sub-action-btn.edit:hover{background:var(--bg3);color:var(--text)}
+.sub-action-btn.pause{background:rgba(245,158,11,0.1);color:#F59E0B}
+.sub-action-btn.pause:hover{background:rgba(245,158,11,0.2)}
+.sub-action-btn.resume{background:rgba(16,185,129,0.1);color:#10B981}
+.sub-action-btn.delete{background:rgba(239,68,68,0.08);color:#EF4444}
+.sub-action-btn.delete:hover{background:rgba(239,68,68,0.15)}
+.sub-empty{
+text-align:center;
+padding:48px 24px;
+color:var(--text3);
+}
+.sub-empty-icon{font-size:48px;margin-bottom:12px;opacity:.35}
+.sub-empty-title{font-size:15px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.sub-empty-desc{font-size:13px}
 
 /* FAB */
 .fab{
@@ -726,21 +785,7 @@ color:var(--text3);
 <!-- SUBSCRIPTIONS -->
 <div id="page-subscriptions" class="page">
 <div class="filter-bar" id="filterBar"></div>
-<div class="card" style="overflow-x:auto;padding:0">
-<table class="sub-table">
-<thead>
-<tr>
-<th>名称</th>
-<th>分类</th>
-<th>费用</th>
-<th>剩余</th>
-<th>状态</th>
-<th>操作</th>
-</tr>
-</thead>
-<tbody id="subTableBody"></tbody>
-</table>
-</div>
+<div class="sub-list" id="subList"></div>
 </div>
 
 <!-- CATEGORIES -->
@@ -1162,12 +1207,10 @@ let currentFilter='all';
 
 function renderSubs(){
 const cats=state.categories;
-// Render filter bar
 const filterBar=document.getElementById('filterBar');
 const filters=[{id:'all',name:'全部'},...cats.map(c=>({id:c.id,name:c.icon+' '+c.name})),{id:'paused',name:'⏸ 已暂停'}];
 filterBar.innerHTML=filters.map(f=>`<div class="filter-chip ${currentFilter===f.id?'active':''}" onclick="setFilter('${f.id}')">${f.name}</div>`).join('');
 
-// Render table
 const active=state.subscriptions.filter(s=>s.status==='active');
 const paused=state.subscriptions.filter(s=>s.status==='paused');
 let subs=currentFilter==='all'?state.subscriptions:
@@ -1176,33 +1219,43 @@ currentFilter==='none'?[]:
 state.subscriptions.filter(s=>s.catId===currentFilter);
 subs=subs.sort((a,b)=>a.nextDate>b.nextDate?1:-1);
 
-const tbody=document.getElementById('subTableBody');
+const list=document.getElementById('subList');
 if(!subs.length){
-tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text3)">暂无订阅</td></tr>`;
+list.innerHTML=`<div class="sub-empty"><div class="sub-empty-icon">📦</div><div class="sub-empty-title">暂无订阅</div><div class="sub-empty-desc">点击下方 + 添加你的第一个订阅</div></div>`;
 return;
 }
-tbody.innerHTML=subs.map(s=>{
+list.innerHTML=subs.map(s=>{
 const cat=catById(s.catId);
 const days=daysUntil(s.nextDate);
 const cycleLabel={monthly:'/月',quarterly:'/季',yearly:'/年'}[s.cycle];
-return`<tr onclick="showDetail(${s.id})" style="cursor:pointer">
-<td class="sub-name">${s.name}</td>
-<td><span class="sub-cat" style="background:${cat.color}22">${cat.icon} ${cat.name}</span></td>
-<td>${formatMoney(s.amount)}${cycleLabel}</td>
-<td><span class="sub-days" style="background:${days<7?'var(--danger-bg)':days<14?'var(--warning-bg)':'rgba(0,0,0,0.06)'};color:${days<7?'var(--danger)':days<14?'var(--warning)':'var(--text)'}">${days<=0?'已到期':days+'天'}</span></td>
-<td><span class="status-${s.status}">${s.status==='active'?'活跃':'已暂停'}</span></td>
-<td class="sub-actions">
-<button class="action-btn" onclick="editSub(${s.id})" title="编辑">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-</button>
-<button class="action-btn" onclick="togglePause(${s.id})" title="${s.status==='active'?'暂停':'恢复'}">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${s.status==='active'?'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>':'<path d="M5 3l14 9-14 9V3z"/>'}</svg>
-</button>
-<button class="action-btn danger" onclick="deleteSub(${s.id})" title="删除">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
-</button>
-</td>
-</tr>`;
+const status=s.status==='paused'?'paused':days<=3?'overdue':'active';
+const statusText=s.status==='paused'?'已暂停':days<=0?'已过期':days<=3?'即将到期':'正常';
+ const amount=parseFloat(s.amount).toFixed(2);
+return`<div class="sub-card" onclick="showDetail(${s.id})">
+<div class="sub-card-top">
+<div class="sub-card-icon" style="background:${cat.color}22">${cat.icon}</div>
+<div class="sub-card-info">
+<div class="sub-card-name">${s.name}</div>
+<div class="sub-card-date">下次 ${s.nextDate||s.startDate}</div>
+</div>
+<div class="sub-card-right">
+<div class="sub-card-amount">¥${amount}</div>
+<div class="sub-card-period">${cycleLabel}</div>
+</div>
+</div>
+<div class="sub-card-tags">
+<span class="sub-tag sub-tag-cat">${cat.icon} ${cat.name}</span>
+<span class="sub-tag sub-tag-${status}">${statusText}</span>
+</div>
+<div class="sub-card-footer">
+<span class="sub-card-meta">${s.billingCycle==='yearly'?'年付':'月付'} · ${cat.name}</span>
+<div class="sub-actions" onclick="event.stopPropagation()">
+<button class="sub-action-btn edit" onclick="editSub(${s.id})">编辑</button>
+<button class="sub-action-btn ${s.status==='paused'?'resume':'pause'}" onclick="togglePause(${s.id})">${s.status==='paused'?'恢复':'暂停'}</button>
+<button class="sub-action-btn delete" onclick="deleteSub(${s.id})">删除</button>
+</div>
+</div>
+</div>`;
 }).join('');
 }
 
